@@ -54,7 +54,7 @@ async def add_vector_document(
     file_type: str = Form(...),
     role_user: str = Form(default="[]"),
     role_subject: str = Form(default="[]"),
-    # current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(verify_token_v2)
 ):
     try:
         # Validate file_type
@@ -147,7 +147,7 @@ async def add_vector_document(
 @router.delete("/{doc_id}", response_model=dict)
 async def delete_vector_document(
     doc_id: str,
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(verify_token_v2)
 ):
     try:
         doc_info = find_document_info(doc_id)
@@ -192,7 +192,7 @@ async def delete_vector_document(
 @router.get("/{doc_id}", response_model=dict)
 async def get_vector_document(
     doc_id: str,
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(verify_token_v2)
 ):
     try:
         doc_info = find_document_info(doc_id)
@@ -226,7 +226,7 @@ def standardization(distance:float) -> float:
 @router.put("/{doc_id}", response_model=dict)
 async def update_vector_document(
     doc_id: str,
-    current_user: dict = Depends(verify_token),
+    current_user: dict = Depends(verify_token_v2),
     filename: str = Form(None),
     uploaded_by: str = Form(None),
     file_type: str = Form(None),
