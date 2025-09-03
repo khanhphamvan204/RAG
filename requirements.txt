@@ -1,0 +1,32 @@
+fastapi
+uvicorn
+python-dotenv
+pymongo
+langchain
+langchain-community
+langchain-google-genai
+pdfplumber
+pandas
+PyMuPDF
+python-multipart
+Pillow
+faiss-cpu
+pdf2image
+opencv-python
+pytesseract
+python-docx
+openpyxl
+unstructured[xlsx]
+langchain_experimental
+
+# fix numpy version
+numpy<2
+
+# torch CPU
+torch==2.2.0+cpu
+-f https://download.pytorch.org/whl/torch_stable.html
+
+# embeddings
+sentence-transformers
+langchain-huggingface
+PyJWT

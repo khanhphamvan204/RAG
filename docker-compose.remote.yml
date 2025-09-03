@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: faiss-api-main
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Root_Folder:/app/Root_Folder
+      - ./.env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=mongodb://admin:123@ai-database.bitech.vn:27017/faiss_db?authSource=admin
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

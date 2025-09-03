@@ -1,0 +1,58 @@
+services:
+  # FastAPI Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: faiss-api-main
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Root_Folder:/app/Root_Folder
+      - ./.env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - app-network
+    # Sửa đổi ở đây
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # MongoDB Database
+  mongo:
+    image: mongo:6.0
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=123
+      - MONGO_INITDB_DATABASE=faiss_db
+    # Thêm healthcheck vào đây
+    healthcheck:
+      test: |
+        mongosh --host localhost \
+                --port 27017 \
+                --username admin \
+                --password 123 \
+                --authenticationDatabase admin \
+                --eval "db.adminCommand('ping')"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
