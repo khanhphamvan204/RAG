@@ -56,7 +56,7 @@ def verify_token_v2(credentials: HTTPAuthorizationCredentials = Depends(security
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         
         # Kiểm tra cấu trúc payload có đúng format mong muốn không
-        required_fields = ["username", "department", "user_type", "full_name"]
+        required_fields = ["username", "user_type", "full_name"]
         missing_fields = [field for field in required_fields if field not in payload]
         
         if missing_fields:
