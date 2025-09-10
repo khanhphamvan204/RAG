@@ -209,7 +209,6 @@ def add_to_embedding(file_path: str, metadata, use_semantic_chunking: bool = Tru
         if not documents:
             logger.warning(f"No documents loaded from {file_path}")
             return False
-        logger.info(documents);
 
         # Get embedding model once và dùng chung
         with EmbeddingModelManager() as embedding_model:

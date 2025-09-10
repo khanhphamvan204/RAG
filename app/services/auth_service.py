@@ -97,15 +97,15 @@ def verify_token_v2(credentials: HTTPAuthorizationCredentials = Depends(security
                 )
         
         # Kiểm tra iat (issued at) - không quá xa trong quá khứ
-        if "iat" in payload:
-            # Token không được issue quá 24 giờ trước (tùy chỉnh theo nhu cầu)
-            max_age = 24 * 60 * 60  # 24 hours
-            if current_time - payload["iat"] > max_age:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token is too old",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+        # if "iat" in payload:
+        #     # Token không được issue quá 24 giờ trước
+        #     max_age = 24 * 60 * 60  # 24 hours
+        #     if current_time - payload["iat"] > max_age:
+        #         raise HTTPException(
+        #             status_code=401,
+        #             detail="Token is too old",
+        #             headers={"WWW-Authenticate": "Bearer"},
+        #         )
         
         # Kiểm tra token type nếu có
         if "type" in payload:

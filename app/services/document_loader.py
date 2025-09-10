@@ -1234,7 +1234,7 @@ def load_excel_or_csv(file_path: str) -> str:
         return ""
 
 
-def load_new_documents(file_path: str, metadata, chunk_size: int = 6000, chunk_overlap: int = 600) -> list:
+def load_new_documents(file_path: str, metadata, chunk_size: int = 1500, chunk_overlap: int = 150) -> list:
     """
     Load documents from various file formats with content splitting
     
