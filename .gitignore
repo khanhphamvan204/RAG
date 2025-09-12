@@ -1,1 +1,4 @@
 Root_Folder/
+__pycache__/
+*.py[cod]
+.env

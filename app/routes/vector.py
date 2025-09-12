@@ -1,6 +1,7 @@
 # app/routes/vector.py
+import traceback
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
-from app.services.embedding_service import add_to_embedding, delete_from_faiss_index, smart_metadata_update
+from app.services.embedding_service import add_to_embedding, delete_from_faiss_index, get_embedding_model, smart_metadata_update
 from app.services.metadata_service import save_metadata, delete_metadata, find_document_info
 from app.services.file_service import get_file_paths
 from app.services.auth_service import verify_token_v2 , filter_accessible_files, verify_token
@@ -12,8 +13,9 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import shutil
 import logging
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain.prompts import PromptTemplate
 import time
 
 router = APIRouter()
@@ -495,5 +497,109 @@ async def search_vector_documents(
         raise
     except Exception as e:
         import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+@router.post("/search-with-llm")
+async def search_with_llm(request: VectorSearchRequest):
+    start_time = time.time()
+
+    try:
+        _, vector_db_path = get_file_paths(request.file_type, "dummy_filename")
+
+        # Check if vector DB exists
+        if not (os.path.exists(f"{vector_db_path}/index.faiss") and os.path.exists(f"{vector_db_path}/index.pkl")):
+            return {
+                "llm_response": "Không tìm thấy tài liệu với thông tin được cung cấp.",
+                "contexts": []
+            }
+
+        # Load vector DB
+        try:
+            embedding_model = get_embedding_model()
+            db = FAISS.load_local(vector_db_path, embedding_model, allow_dangerous_deserialization=True)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to load vector database: {str(e)}")
+
+        # Perform similarity search
+        try:
+            docs_with_scores = db.similarity_search_with_score(
+                request.query,
+                k=request.k
+            )
+
+            # Chuẩn hóa và lọc theo threshold
+            filtered_docs = [
+                (doc, standardization(score)) for doc, score in docs_with_scores
+                if standardization(score) >= request.similarity_threshold
+            ]
+
+            # Chuyển sang dict
+            search_results = [
+                {
+                    "content": doc.page_content,
+                    "metadata": {**doc.metadata, "similarity_score": float(score)}
+                }
+                for doc, score in filtered_docs
+            ]
+
+            # Lọc theo quyền truy cập
+            # Lấy top k
+            top_results = search_results[:request.k]
+
+            # Generate LLM response
+            llm_response = "Không tìm thấy tài liệu với thông tin được cung cấp."
+            contexts = []
+            if top_results:
+                try:
+                    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+
+                    context = "\n\n".join(
+                        [f"Document {i+1}:\n{result['content']}" for i, result in enumerate(top_results)]
+                    )
+
+                    prompt_template = PromptTemplate(
+                        input_variables=["query", "context"],
+                        template="""
+You are a helpful assistant that answers queries based solely on the provided context. 
+Do not add any information from your own knowledge or make assumptions. 
+If the context does not contain relevant information to answer the query, respond with: "No relevant information found in the provided documents."
+
+Instructions:
+- Provide a concise, accurate, and complete answer.
+- Structure your response clearly:
+  - Start with a brief summary answer.
+  - Use bullet points for key details or lists if applicable.
+  - If referencing specific documents, cite them as [Document X].
+
+Query: {query}
+
+Context:
+{context}
+"""
+                    )
+
+                    prompt = prompt_template.format(query=request.query, context=context)
+                    result = llm.invoke(prompt, return_metadata=True)
+                    llm_response = result.content
+                    print("Token usage info:", result.metadata.get("usage"))
+
+                except Exception as e:
+                    logger.error(f"LLM response generation failed: {str(e)}")
+                    llm_response = "Failed to generate LLM response."
+                    contexts = []
+
+            return {
+                "llm_response": llm_response,
+                "contexts": contexts
+            }
+
+        except Exception as e:
+            logger.error(f"Search execution failed: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Search execution failed: {str(e)}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal server error")
