@@ -14,7 +14,6 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - app-network
-    # Sửa đổi ở đây
     depends_on:
       mongo:
         condition: service_healthy
